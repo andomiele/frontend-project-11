@@ -1,5 +1,4 @@
-// @ts-check
-
+// @ts-chec
 import Example from './Example.js';
 
 export default () => {
