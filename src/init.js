@@ -1,8 +1,4 @@
 // @ts-chec
-import Example from './Example.js';
+import app from './index.js';
 
-export default () => {
-  const element = document.getElementById('point');
-  const obj = new Example(element);
-  obj.init();
-};
+app();
