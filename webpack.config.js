@@ -1,13 +1,23 @@
+import path from 'path';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+
+const mode = process.env.NODE_ENV || 'development';
 
 const config = {
-  mode: process.env.NODE_ENV || 'production',
   entry: './src/index.js',
+  output: {
+    path: path.resolve('public'),
+  },
+  watchOptions: {
+    poll: 1000,
+  },
   devServer: {
-    open: true,
     host: 'localhost',
+    port: 5000,
   },
   plugins: [
+    new MiniCssExtractPlugin(),
     new HtmlWebpackPlugin({
       template: 'index.html',
     }),
@@ -15,33 +25,22 @@ const config = {
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/i,
-        loader: 'babel-loader',
+        test: /\.css$/i,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
+      },
+      {
+        test: /\.scss$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader', 'sass-loader'],
       },
       {
         test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
         type: 'asset',
       },
-      { test: /\.css$/, use: ['style-loader', 'css-loader', 'postcss-loader'] },
-      {
-        test: /\.scss$/,
-        use: ['style-loader', 'css-loader', 'sass-loader', 'postcss-loader'],
-      },
-      {
-        test: /\.woff2?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        use: 'url-loader?limit=10000',
-      },
-      {
-        test: /\.(ttf|eot|svg)(\?[\s\S]+)?$/,
-        use: 'file-loader',
-      },
     ],
-  },
-  performance: {
-    hints: false,
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000,
   },
 };
 
-export default config;
+export default {
+  ...config,
+  mode,
+};
