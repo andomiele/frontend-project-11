@@ -1,35 +1,78 @@
 import { string, setLocale } from 'yup';
 import i18n from 'i18next';
+import axios from 'axios';
 import watch from './view.js';
 import resources from './ru.js';
+import parse from './parser.js';
+
+// setLocale({
+//   string: {
+//     url: resources.translation.invalidURL,
+//     required: resources.translation.emptyString,
+//   },
+//   mixed: {
+//     notOneOf: resources.translation.existRSS,
+//   },
+// });
+
+// const validate = (form, urlList, i18next) => {
+//   const schema = string().url().required();
+
+//   return schema
+//     .notOneOf(urlList)
+//     .validate(form)
+//     .then(() => null)
+//     .catch((error) => i18next.t(error.message));
+// };
 
 setLocale({
   string: {
-    url: resources.translation.invalidURL,
-    required: resources.translation.emptyString,
+    url: 'invalidURL',
+    required: 'emptyString',
   },
   mixed: {
-    notOneOf: resources.translation.existRSS,
+    notOneOf: 'existRSS',
   },
 });
 
-const validate = (fields, urlList, i18next) => {
+const validate = (form, urlList) => {
   const schema = string().url().required();
 
   return schema
     .notOneOf(urlList)
-    .validate(fields)
+    .validate(form)
     .then(() => null)
-    .catch((error) => i18next.t(error.message));
+    .catch((error) => (error.message));
+};
+
+const addProxy = (url) => {
+  const newUrl = new URL('https://allorigins.hexlet.app/get');
+  newUrl.searchParams.set('disableCache', 'true');
+  newUrl.searchParams.set('url', url);
+  return newUrl;
+};
+
+const load = async (inputUrl, initialState) => {
+  axios.get(addProxy(inputUrl))
+    .then((response) => parse(response.data, initialState))
+    .catch((error) => {
+      console.log('loadError', error);
+    });
 };
 
 const app = () => {
   const initialState = {
-    fields: {
+    form: {
       isValid: '',
-      url: '',
       textError: '',
     },
+    load: {
+      textError: '',
+    },
+    parse: {
+      textError: '',
+    },
+    feeds: [],
     urlList: [],
     postList: [],
   };
@@ -41,9 +84,9 @@ const app = () => {
     feedback: document.querySelector('.feedback'),
   };
 
-  const watchedState = watch(initialState, elements);
-
   const i18next = i18n.createInstance();
+  const watchedState = watch(initialState, elements, i18next);
+
   i18next.init({
     lng: 'ru',
     debug: true,
@@ -52,18 +95,28 @@ const app = () => {
     .then(() => elements.form.addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(event.target);
-      initialState.fields.url = formData.get('url');
-      validate(initialState.fields.url, initialState.urlList, i18next)
+      const url = formData.get('url');
+      validate(url, initialState.urlList)
         .then((error) => {
           if (error) {
-            watchedState.fields.textError = error;
-            watchedState.fields.isValid = false;
+            watchedState.form.textError = error;
+            watchedState.form.isValid = false;
+            // eslint-disable-next-line no-useless-return
             return;
           }
-          watchedState.fields.textError = i18next.t(resources.translation.validRSS);
-          watchedState.fields.isValid = true;
-          initialState.urlList.push(initialState.fields.url);
         });
+      watchedState.form.isValid = true;
+      watchedState.form.textError = 'validRSS';
+      load(url, initialState)
+        .then((error) => {
+          if (error) {
+            watchedState.load.textError = error;
+            watchedState.form.isValid = false;
+            // eslint-disable-next-line no-useless-return
+            return;
+          }
+        });
+      watchedState.urlList.push(url);
     }));
   console.log(initialState);
 };
