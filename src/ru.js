@@ -5,5 +5,6 @@ export default {
     emptyString: 'Строка не должна быть пустой',
     validRSS: 'RSS успешно загружен',
     existRSS: 'RSS уже существует',
+    loadError: 'Ресурс не содержит валидный RSS',
   },
 };
