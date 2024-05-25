@@ -1,5 +1,4 @@
 import onChange from 'on-change';
-import isEmpty from 'lodash/isEmpty.js';
 
 const watch = (initialState, elements, i18next) => {
   const state = onChange(initialState, (path, newValue) => {
@@ -20,61 +19,82 @@ const watch = (initialState, elements, i18next) => {
       elements.feedback.classList.add('text-success');
       elements.input.classList.remove('is-invalid');
     }
-    const card = document.createElement('div');
-    card.classList.add('card', 'border-0');
-    card.innerHTML = '';
-    const cardBody = document.createElement('div');
-    cardBody.classList.add('card-body');
-    const cardTitle = document.createElement('h2');
-    cardTitle.classList.add('card-title', 'h4');
-    cardTitle.textContent = 'Посты';
-    const cardList = document.createElement('ul');
-    cardList.classList.add('list-group', 'border-0', 'rounded-0');
-    const posts = initialState.posts.map((post) => {
-      const cardPost = document.createElement('li');
+    // eslint-disable-next-line no-param-reassign
+    elements.posts.innerHTML = '';
+    const postsBlock = document.createElement('div');
+    postsBlock.classList.add('card', 'border-0');
+    const postsBody = document.createElement('div');
+    postsBody.classList.add('card-body');
+    const postsTitle = document.createElement('h2');
+    postsTitle.classList.add('card-title', 'h4');
+    postsTitle.textContent = 'Посты';
+    const postsList = document.createElement('ul');
+    postsList.classList.add('list-group', 'border-0', 'rounded-0');
+    initialState.posts.map((post) => {
+      const postItem = document.createElement('li');
       const postHref = document.createElement('a');
       const postButton = document.createElement('button');
-      if (post.link !== undefined) {
-        cardPost.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
-        postHref.classList.add('fw-bold');
-        postHref.setAttribute('href', post.link);
-        postHref.setAttribute('target', '_blank');
-        postHref.setAttribute('rel', 'noopener noreferrer');
-        postHref.setAttribute('data-id', post.feedID);
-        postHref.textContent = post.title;
-        postButton.classList.add('btn', 'btn-outline-primary', 'btn-sm');
-        postButton.setAttribute('type', 'button');
-        postButton.setAttribute('data-id', post.feedID);
-        postButton.setAttribute('data-bs-toggle', 'modal');
-        postButton.setAttribute('data-bs-target', '#modal');
-        postButton.textContent = 'Просмотр';
-        cardPost.prepend(postHref, postButton);
-        cardList.prepend(cardPost);
+      const modalHeader = elements.modal.querySelector('.modal-header');
+      const modalBody = elements.modal.querySelector('.modal-body');
+      const modalFooter = elements.modal.querySelector('.modal-footer');
+      const modalTitle = modalHeader.querySelector('h5');
+      const modalButton = modalFooter.querySelector('a');
+      postItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
+      postHref.classList.add('fw-bold');
+      if (initialState.viewPosts.includes(post.id)) {
+        postHref.classList.remove('fw-bold');
+        postHref.classList.add('fw-normal', 'link-secondary');
       }
+      postHref.setAttribute('href', post.link);
+      postHref.setAttribute('target', '_blank');
+      postHref.setAttribute('rel', 'noopener noreferrer');
+      postHref.setAttribute('data-id', post.id);
+      postHref.textContent = post.title;
+      postButton.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+      postButton.setAttribute('type', 'button');
+      postButton.setAttribute('data-id', post.id);
+      postButton.setAttribute('data-bs-toggle', 'modal');
+      postButton.setAttribute('data-bs-target', '#modal');
+      postButton.textContent = 'Просмотр';
+      postItem.prepend(postHref, postButton);
+      postsList.prepend(postItem);
+      modalTitle.textContent = post.title;
+      modalBody.textContent = post.description;
+      modalButton.setAttribute('href', post.link);
       return post;
     });
-    card.prepend(cardList);
-    cardBody.prepend(cardTitle);
-    card.prepend(cardBody);
-    elements.cardBlock.prepend(card);
+    postsBody.prepend(postsTitle);
+    postsBlock.prepend(postsBody, postsList);
+    elements.posts.prepend(postsBlock);
+
+    // eslint-disable-next-line no-param-reassign
+    elements.feeds.innerHTML = '';
+    const feedsBlock = document.createElement('div');
+    feedsBlock.classList.add('card', 'border-0');
+    const feedsBody = document.createElement('div');
+    feedsBody.classList.add('card-body');
+    const feedsTitle = document.createElement('h2');
+    feedsTitle.classList.add('card-title', 'h4');
+    feedsTitle.textContent = 'Фиды';
+    const feedsList = document.createElement('ul');
+    feedsList.classList.add('list-group', 'border-0', 'rounded-0');
+    initialState.feeds.map((feed) => {
+      const feedItem = document.createElement('li');
+      feedItem.classList.add('list-group-item', 'border-0', 'border-end-0');
+      const feedTitle = document.createElement('h3');
+      feedTitle.classList.add('h6', 'm-0');
+      feedTitle.textContent = feed.title;
+      const feedDescription = document.createElement('p');
+      feedDescription.classList.add('m-0', 'small', 'text-black-50');
+      feedDescription.textContent = feed.description;
+      feedItem.prepend(feedTitle, feedDescription);
+      feedsList.prepend(feedItem);
+      return feed;
+    });
+    feedsBody.prepend(feedsTitle);
+    feedsBlock.prepend(feedsBody, feedsList);
+    elements.feeds.prepend(feedsBlock);
   });
   return state;
 };
 export default watch;
-
-// div class=card border-0
-  // div class=card-body
-    // h2 class=card-title h4 'Посты'
-  // ul class=list-group border-0 rounded-0
-    // li class="list-group-item d-flex justify-content-between align-items-start border-0 border-end-0"
-      // a href="http://example.com/test/1716406800" class="fw-bold" data-id="2" target="_blank" rel="noopener noreferrer" 'Lorem ipsum 2024-05-22T19:40:00Z'
-      // button type="button" class="btn btn-outline-primary btn-sm" data-id="2" data-bs-toggle="modal" data-bs-target="#modal" 'Просмотр'
-      // ...
-
-// div class="card border-0"
-  // div class="card-body"
-    // h2 class="card-title h4" 'Фиды'
-  // ul class="list-group border-0 rounded-0"
-    // li class="list-group-item border-0 border-end-0"
-      // h3 class="h6 m-0" 'Lorem ipsum feed for an interval of 1 minutes with 10 item(s)'
-      // p class="m-0 small text-black-50" 'This is a constantly updating lorem ipsum feed'
