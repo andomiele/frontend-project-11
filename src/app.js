@@ -38,21 +38,24 @@ const load = async (inputUrl, initialState, watchedState) => {
     .then((result) => {
       const response = parse(result.data);
       const feedId = uniqueId();
-      watchedState.feeds.push({
+      const feed = {
         url: inputUrl,
         title: response.feed.title,
         description: response.feed.description,
         id: feedId,
-      });
-      const posts = response.postsList;
-      posts.map((post) => {
-        watchedState.posts.push({
+      };
+      // eslint-disable-next-line no-param-reassign
+      watchedState.feeds = [...watchedState.feeds, feed];
+      const AddPosts = response.postsList.map((post) => {
+        const posts = {
           title: post.title,
           description: post.description,
           link: post.link,
           id: uniqueId(),
           feedID: feedId,
-        });
+        };
+        // eslint-disable-next-line no-param-reassign
+        watchedState.posts = [...watchedState.posts, posts];
         return post;
       });
       // eslint-disable-next-line no-param-reassign
@@ -60,6 +63,7 @@ const load = async (inputUrl, initialState, watchedState) => {
       // eslint-disable-next-line no-param-reassign
       watchedState.parse.textError = 'validRSS';
       console.log(initialState);
+      return AddPosts;
     })
     .catch((error) => {
       // eslint-disable-next-line no-param-reassign
@@ -69,31 +73,41 @@ const load = async (inputUrl, initialState, watchedState) => {
     });
 };
 
+const reload = async (watchedState) => {
+  const promises = watchedState.feeds.map((feed) => {
+    const promise = axios.get(addProxy(feed.url))
+      .then((result) => {
+        const response = parse(result.data);
+        const oldPosts = watchedState.posts.map((oldPost) => oldPost.link);
+        const newPosts = response.postsList
+          .filter((post) => !oldPosts.includes(post.link))
+          .map((post) => {
+            const newPost = {
+              title: post.title,
+              description: post.description,
+              link: post.link,
+              id: uniqueId(),
+              feedID: feed.id,
+            };
+            return newPost;
+          });
+        // eslint-disable-next-line no-param-reassign
+        watchedState.posts = [...newPosts, ...watchedState.posts];
+      })
+      .catch((error) => console.error('Ошибка: ', error));
+    return promise;
+  });
+  Promise.all(promises).then(() => setTimeout(() => reload(watchedState), 5000));
+};
+
 const app = () => {
   const initialState = {
-    form: {
-      isValid: '',
-      textError: '',
-    },
-    load: {
-      textError: '',
-    },
-    parse: {
-      textError: '',
-    },
-    feeds: [{
-      url: '',
-      title: '',
-      description: '',
-      id: 0,
-    }],
-    posts: [{}],
-    // posts: [{
-    //   title: null,
-    //   description: '',
-    //   id: 0,
-    //   feedID: 0,
-    // }],
+    form: {},
+    load: {},
+    parse: {},
+    feeds: [],
+    posts: [],
+    viewPosts: [],
   };
 
   const elements = {
@@ -101,7 +115,9 @@ const app = () => {
     button: document.querySelector('[type="submit"]'),
     input: document.querySelector('input'),
     feedback: document.querySelector('.feedback'),
-    cardBlock: document.querySelector('.posts'),
+    posts: document.querySelector('.posts'),
+    feeds: document.querySelector('.feeds'),
+    modal: document.querySelector('[class="modal-content"]'),
   };
 
   const i18next = i18n.createInstance();
@@ -129,6 +145,11 @@ const app = () => {
             watchedState.form.isValid = '';
             load(url, initialState, watchedState);
           });
+      });
+      setTimeout(() => reload(watchedState), 5000);
+      elements.posts.addEventListener('click', (event) => {
+        const viewPost = event.target.dataset.id;
+        watchedState.viewPosts = [viewPost, ...watchedState.viewPosts];
       });
     });
 };
