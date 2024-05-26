@@ -1,3 +1,4 @@
+import path from 'path';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 
@@ -5,6 +6,9 @@ const mode = process.env.NODE_ENV || 'development';
 
 const config = {
   entry: './src/index.js',
+  output: {
+    path: path.resolve('public'),
+  },
 
   watchOptions: {
     poll: 1000,
