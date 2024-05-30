@@ -33,7 +33,18 @@ const addProxy = (url) => {
   return newUrl;
 };
 
-const load = async (inputUrl, initialState, watchedState) => {
+const errorFn = (error) => {
+  if (error.isExiosError) return ('loadError');
+  if (error.isParserError) return ('parseError');
+  return error;
+};
+
+const load = async (inputUrl, watchedState) => {
+  // eslint-disable-next-line no-param-reassign
+  watchedState.load = {
+    error: '',
+    status: 'loading',
+  };
   axios.get(addProxy(inputUrl))
     .then((result) => {
       const response = parse(result.data);
@@ -46,30 +57,27 @@ const load = async (inputUrl, initialState, watchedState) => {
       };
       // eslint-disable-next-line no-param-reassign
       watchedState.feeds = [...watchedState.feeds, feed];
-      const AddPosts = response.postsList.map((post) => {
-        const posts = {
-          title: post.title,
-          description: post.description,
-          link: post.link,
-          id: uniqueId(),
-          feedID: feedId,
-        };
+      const posts = response.postsList.map((post) => ({
+        title: post.title,
+        description: post.description,
+        link: post.link,
+        id: uniqueId(),
+        feedID: feedId,
+      }));
         // eslint-disable-next-line no-param-reassign
-        watchedState.posts = [...watchedState.posts, posts];
-        return post;
-      });
+      watchedState.posts = [...posts, ...watchedState.posts];
       // eslint-disable-next-line no-param-reassign
-      initialState.load.textError = '';
-      // eslint-disable-next-line no-param-reassign
-      watchedState.parse.textError = 'validRSS';
-      console.log(initialState);
-      return AddPosts;
+      watchedState.load = {
+        error: '',
+        status: 'success',
+      };
     })
     .catch((error) => {
       // eslint-disable-next-line no-param-reassign
-      watchedState.parse.textError = error.message === 'Network Error' ? 'loadError' : error.message;
-      // eslint-disable-next-line no-param-reassign
-      initialState.parse.textError = '';
+      watchedState.load = {
+        error: errorFn(error).message,
+        status: 'fail',
+      };
     });
 };
 
@@ -79,22 +87,24 @@ const reload = async (watchedState) => {
       .then((result) => {
         const response = parse(result.data);
         const oldPosts = watchedState.posts.map((oldPost) => oldPost.link);
-        const newPosts = response.postsList
-          .filter((post) => !oldPosts.includes(post.link))
-          .map((post) => {
-            const newPost = {
-              title: post.title,
-              description: post.description,
-              link: post.link,
-              id: uniqueId(),
-              feedID: feed.id,
-            };
-            return newPost;
-          });
-        // eslint-disable-next-line no-param-reassign
-        watchedState.posts = [...newPosts, ...watchedState.posts];
+        if (watchedState.load.status === 'success') {
+          const newPosts = response.postsList
+            .filter((post) => !oldPosts.includes(post.link))
+            .map((post) => {
+              const newPost = {
+                title: post.title,
+                description: post.description,
+                link: post.link,
+                id: uniqueId(),
+                feedID: feed.id,
+              };
+              return newPost;
+            });
+          // eslint-disable-next-line no-param-reassign
+          watchedState.posts = [...newPosts, ...watchedState.posts];
+        }
       })
-      .catch((error) => console.error('Ошибка: ', error));
+      .catch((error) => console.log('Ошибка: ', error));
     return promise;
   });
   Promise.all(promises).then(() => setTimeout(() => reload(watchedState), 5000));
@@ -102,12 +112,20 @@ const reload = async (watchedState) => {
 
 const app = () => {
   const initialState = {
-    form: {},
-    load: {},
-    parse: {},
+    form: {
+      error: '',
+      isValid: false,
+    },
+    load: {
+      error: '', // ошибка загрузки и парсинга
+      status: 'idle',
+    },
     feeds: [],
     posts: [],
-    viewPosts: [],
+    ui: {
+      viewPosts: new Set(), // коллекция сет
+      modalId: null,
+    },
   };
 
   const elements = {
@@ -134,23 +152,28 @@ const app = () => {
         const url = formData.get('url');
         const urlList = initialState.feeds.map((element) => element.url);
         validate(url, urlList)
-          .then((error) => {
-            if (error) {
-              watchedState.parse.textError = '';
-              watchedState.form.textError = error;
-              watchedState.form.isValid = false;
+          .then((formError) => {
+            if (formError) {
+              watchedState.form = {
+                error: formError,
+                isValid: false,
+              };
               return;
             }
-            initialState.form.textError = '';
-            watchedState.form.isValid = '';
-            load(url, initialState, watchedState);
+            watchedState.form = {
+              error: '',
+              isValid: true,
+            };
+            load(url, watchedState);
           });
       });
       setTimeout(() => reload(watchedState), 5000);
       elements.posts.addEventListener('click', (event) => {
-        const viewPost = event.target.dataset.id;
-        watchedState.viewPosts = [viewPost, ...watchedState.viewPosts];
+        const postId = event.target.dataset.id;
+        watchedState.ui.viewPosts.add(postId);
+        watchedState.ui.modalId = postId;
       });
+      console.log(initialState);
     });
 };
 export default app;
