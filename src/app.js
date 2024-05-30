@@ -34,7 +34,7 @@ const addProxy = (url) => {
 };
 
 const errorFn = (error) => {
-  if (error.isExiosError) return ('loadError');
+  if (error.isAxiosError) return ({ message: 'loadError' });
   if (error.isParserError) return ('parseError');
   return error;
 };
