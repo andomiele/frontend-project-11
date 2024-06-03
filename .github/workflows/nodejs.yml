@@ -1,4 +1,4 @@
-name: GitHub Actions
+name: Lint
 on:
   - push
   - pull_request
