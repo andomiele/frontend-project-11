@@ -14,7 +14,10 @@ const formRendering = (state, path, elements, i18next, value) => {
   if (path === 'load') {
     if (state.load.status === 'loading') {
       // eslint-disable-next-line no-param-reassign
-      elements.button.disabled = true;
+      elements.form.disabled = true;
+      elements.feedback.classList.add('text-success');
+      elements.feedback.classList.remove('text-danger');
+      elements.input.classList.remove('is-invalid');
     }
     if (state.load.error !== '') {
       message.textContent = i18next.t(value.error);
@@ -22,7 +25,7 @@ const formRendering = (state, path, elements, i18next, value) => {
       elements.feedback.classList.add('text-danger');
       elements.input.classList.add('is-invalid');
       // eslint-disable-next-line no-param-reassign
-      elements.button.disabled = false;
+      elements.form.disabled = false;
     }
     if (state.load.status === 'success') {
       elements.feedback.classList.add('text-success');
@@ -30,14 +33,14 @@ const formRendering = (state, path, elements, i18next, value) => {
       elements.input.classList.remove('is-invalid');
       message.textContent = i18next.t('validRSS');
       // eslint-disable-next-line no-param-reassign
-      elements.button.disabled = false;
+      elements.form.disabled = false;
       elements.form.reset();
       elements.input.focus();
     }
   }
 };
 
-const postsRendering = (state, elements) => {
+const postsRendering = (state, elements, i18next) => {
   // eslint-disable-next-line no-param-reassign
   elements.posts.innerHTML = '';
   const postsBlock = document.createElement('div');
@@ -49,6 +52,7 @@ const postsRendering = (state, elements) => {
   postsTitle.textContent = 'Посты';
   const postsList = document.createElement('ul');
   postsList.classList.add('list-group', 'border-0', 'rounded-0');
+
   const posts = state.posts.map((post) => {
     const postItem = document.createElement('li');
     const postHref = document.createElement('a');
@@ -69,7 +73,7 @@ const postsRendering = (state, elements) => {
     postButton.setAttribute('data-id', post.id);
     postButton.setAttribute('data-bs-toggle', 'modal');
     postButton.setAttribute('data-bs-target', '#modal');
-    postButton.textContent = 'Просмотр';
+    postButton.textContent = i18next.t('button');
     postItem.prepend(postHref, postButton);
     return postItem;
   });
@@ -91,6 +95,7 @@ const feedsRendering = (state, elements) => {
   feedsTitle.textContent = 'Фиды';
   const feedsList = document.createElement('ul');
   feedsList.classList.add('list-group', 'border-0', 'rounded-0');
+
   const feeds = state.feeds.map((feed) => {
     const feedItem = document.createElement('li');
     feedItem.classList.add('list-group-item', 'border-0', 'border-end-0');
@@ -128,13 +133,13 @@ const watch = (state, elements, i18next) => onChange(state, (path, newValue) => 
       formRendering(state, path, elements, i18next, newValue);
       break;
     case 'posts':
-      postsRendering(state, elements);
+      postsRendering(state, elements, i18next);
       break;
     case 'feeds':
       feedsRendering(state, elements);
       break;
     case 'ui.viewPosts':
-      postsRendering(state, elements);
+      postsRendering(state, elements, i18next);
       break;
     case 'ui.modalId':
       modalRendering(state, elements);
