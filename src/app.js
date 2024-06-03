@@ -3,7 +3,7 @@ import i18n from 'i18next';
 import axios from 'axios';
 import uniqueId from 'lodash/uniqueId.js';
 import watch from './view.js';
-import resources from './resources.js';
+import resources from './locales/resources.js';
 import parse from './parser.js';
 
 setLocale({
@@ -30,10 +30,10 @@ const addProxy = (url) => {
   const newUrl = new URL('https://allorigins.hexlet.app/get');
   newUrl.searchParams.set('disableCache', 'true');
   newUrl.searchParams.set('url', url);
-  return newUrl;
+  return newUrl.href;
 };
 
-const errorFn = (error) => {
+const catchError = (error) => {
   if (error.isAxiosError) return ({ message: 'loadError' });
   if (error.isParserError) return ('parseError');
   return error;
@@ -64,7 +64,8 @@ const load = async (inputUrl, watchedState) => {
         id: uniqueId(),
         feedID: feedId,
       }));
-        // eslint-disable-next-line no-param-reassign
+
+      // eslint-disable-next-line no-param-reassign
       watchedState.posts = [...posts, ...watchedState.posts];
       // eslint-disable-next-line no-param-reassign
       watchedState.load = {
@@ -75,7 +76,7 @@ const load = async (inputUrl, watchedState) => {
     .catch((error) => {
       // eslint-disable-next-line no-param-reassign
       watchedState.load = {
-        error: errorFn(error).message,
+        error: catchError(error).message,
         status: 'fail',
       };
     });
@@ -117,13 +118,13 @@ const app = () => {
       isValid: false,
     },
     load: {
-      error: '', // ошибка загрузки и парсинга
+      error: '',
       status: 'idle',
     },
     feeds: [],
     posts: [],
     ui: {
-      viewPosts: new Set(), // коллекция сет
+      viewPosts: new Set(),
       modalId: null,
     },
   };
@@ -167,13 +168,16 @@ const app = () => {
             load(url, watchedState);
           });
       });
-      setTimeout(() => reload(watchedState), 5000);
+
       elements.posts.addEventListener('click', (event) => {
         const postId = event.target.dataset.id;
-        watchedState.ui.viewPosts.add(postId);
-        watchedState.ui.modalId = postId;
+        if (postId !== undefined) {
+          watchedState.ui.viewPosts.add(postId);
+          watchedState.ui.modalId = postId;
+        }
       });
-      console.log(initialState);
+
+      reload(watchedState);
     });
 };
 export default app;
