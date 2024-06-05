@@ -6,6 +6,9 @@ import watch from './view.js';
 import resources from './locales/resources.js';
 import parse from './parser.js';
 
+const TIMEOUT = 1000;
+const RELOAD_TIMER = 5000;
+
 setLocale({
   string: {
     url: 'invalidURL',
@@ -33,10 +36,10 @@ const addProxy = (url) => {
   return newUrl.href;
 };
 
-const catchError = (error) => {
-  if (error.isAxiosError) return ({ message: 'loadError' });
+const extractError = (error) => {
+  if (error.isAxiosError) return ('loadError');
   if (error.isParserError) return ('parseError');
-  return error;
+  return 'unknown';
 };
 
 const load = async (inputUrl, watchedState) => {
@@ -45,7 +48,7 @@ const load = async (inputUrl, watchedState) => {
     error: '',
     status: 'loading',
   };
-  axios.get(addProxy(inputUrl))
+  axios.get(addProxy(inputUrl), { TIMEOUT })
     .then((result) => {
       const response = parse(result.data);
       const feedId = uniqueId();
@@ -76,7 +79,7 @@ const load = async (inputUrl, watchedState) => {
     .catch((error) => {
       // eslint-disable-next-line no-param-reassign
       watchedState.load = {
-        error: catchError(error).message,
+        error: extractError(error),
         status: 'fail',
       };
     });
@@ -87,28 +90,27 @@ const reload = async (watchedState) => {
     const promise = axios.get(addProxy(feed.url))
       .then((result) => {
         const response = parse(result.data);
-        const oldPosts = watchedState.posts.map((oldPost) => oldPost.link);
-        if (watchedState.load.status === 'success') {
-          const newPosts = response.postsList
-            .filter((post) => !oldPosts.includes(post.link))
-            .map((post) => {
-              const newPost = {
-                title: post.title,
-                description: post.description,
-                link: post.link,
-                id: uniqueId(),
-                feedID: feed.id,
-              };
-              return newPost;
-            });
-          // eslint-disable-next-line no-param-reassign
-          watchedState.posts = [...newPosts, ...watchedState.posts];
-        }
+        const currentPosts = watchedState.posts.filter((post) => post.feedID === feed.id);
+        const oldPosts = currentPosts.map((oldPost) => oldPost.link);
+        const newPosts = response.postsList
+          .filter((post) => !oldPosts.includes(post.link))
+          .map((post) => {
+            const newPost = {
+              title: post.title,
+              description: post.description,
+              link: post.link,
+              id: uniqueId(),
+              feedID: feed.id,
+            };
+            return newPost;
+          });
+        // eslint-disable-next-line no-param-reassign
+        watchedState.posts = [...newPosts, ...watchedState.posts];
       })
       .catch((error) => console.log('Ошибка: ', error));
     return promise;
   });
-  Promise.all(promises).then(() => setTimeout(() => reload(watchedState), 5000));
+  Promise.all(promises).then(() => setTimeout(() => reload(watchedState), RELOAD_TIMER));
 };
 
 const app = () => {
@@ -171,7 +173,7 @@ const app = () => {
 
       elements.posts.addEventListener('click', (event) => {
         const postId = event.target.dataset.id;
-        if (postId !== undefined) {
+        if (postId) {
           watchedState.ui.viewPosts.add(postId);
           watchedState.ui.modalId = postId;
         }
