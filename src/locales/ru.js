@@ -6,7 +6,9 @@ export default {
     existRSS: 'RSS уже существует',
     loadError: 'Ошибка сети',
     parseError: 'Ресурс не содержит валидный RSS',
-    other: 'Неизвестная ошибка',
-    button: 'Просмотр',
+    unknown: 'Неизвестная ошибка',
+    preview: 'Просмотр',
+    posts: 'Посты',
+    feeds: 'Фиды',
   },
 };
