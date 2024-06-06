@@ -1,46 +1,50 @@
 import onChange from 'on-change';
 
-const formRendering = (state, path, elements, i18next, value) => {
-  const message = elements.feedback;
-  message.innerHTML = '';
-  if (path === 'form') {
-    if (state.form.error !== '') {
-      message.textContent = i18next.t(value.error);
-      elements.feedback.classList.remove('text-success');
-      elements.feedback.classList.add('text-danger');
-      elements.input.classList.add('is-invalid');
-    }
+const handleFeedback = (elements, isError, message = '') => {
+  // eslint-disable-next-line no-param-reassign
+  elements.feedback.textContent = message;
+  if (isError) {
+    elements.feedback.classList.remove('text-success');
+    elements.feedback.classList.add('text-danger');
+    elements.input.classList.add('is-invalid');
+    return;
   }
-  if (path === 'load') {
-    if (state.load.status === 'loading') {
-      // eslint-disable-next-line no-param-reassign
-      elements.form.disabled = true;
-      elements.feedback.classList.add('text-success');
-      elements.feedback.classList.remove('text-danger');
-      elements.input.classList.remove('is-invalid');
-    }
-    if (state.load.error !== '') {
-      message.textContent = i18next.t(value.error);
-      elements.feedback.classList.remove('text-success');
-      elements.feedback.classList.add('text-danger');
-      elements.input.classList.add('is-invalid');
-      // eslint-disable-next-line no-param-reassign
-      elements.form.disabled = false;
-    }
-    if (state.load.status === 'success') {
-      elements.feedback.classList.add('text-success');
-      elements.feedback.classList.remove('text-danger');
-      elements.input.classList.remove('is-invalid');
-      message.textContent = i18next.t('validRSS');
-      // eslint-disable-next-line no-param-reassign
-      elements.form.disabled = false;
-      elements.form.reset();
-      elements.input.focus();
-    }
+  elements.feedback.classList.add('text-success');
+  elements.feedback.classList.remove('text-danger');
+  elements.input.classList.remove('is-invalid');
+};
+
+const handleForm = ({ form }, elements, i18next) => {
+  const isError = form.isValid === false;
+  const message = isError ? i18next.t(form.error) : '';
+  handleFeedback(elements, isError, message);
+};
+
+const handleLoading = ({ load }, elements, i18next) => {
+  const isError = load.status === 'fail';
+  if (load.status === 'loading') {
+    // eslint-disable-next-line no-param-reassign
+    elements.form.disabled = true;
+    const message = '';
+    handleFeedback(elements, isError, message);
+  }
+  if (load.status === 'fail') {
+    // eslint-disable-next-line no-param-reassign
+    elements.form.disabled = false;
+    const message = i18next.t(load.error);
+    handleFeedback(elements, isError, message);
+  }
+  if (load.status === 'success') {
+    // eslint-disable-next-line no-param-reassign
+    elements.form.disabled = false;
+    const message = i18next.t('validRSS');
+    handleFeedback(elements, isError, message);
+    elements.form.reset();
+    elements.input.focus();
   }
 };
 
-const postsRendering = (state, elements, i18next) => {
+const postsRender = (state, elements, i18next) => {
   // eslint-disable-next-line no-param-reassign
   elements.posts.innerHTML = '';
   const postsBlock = document.createElement('div');
@@ -49,7 +53,7 @@ const postsRendering = (state, elements, i18next) => {
   postsBody.classList.add('card-body');
   const postsTitle = document.createElement('h2');
   postsTitle.classList.add('card-title', 'h4');
-  postsTitle.textContent = 'Посты';
+  postsTitle.textContent = i18next.t('posts');
   const postsList = document.createElement('ul');
   postsList.classList.add('list-group', 'border-0', 'rounded-0');
 
@@ -73,7 +77,7 @@ const postsRendering = (state, elements, i18next) => {
     postButton.setAttribute('data-id', post.id);
     postButton.setAttribute('data-bs-toggle', 'modal');
     postButton.setAttribute('data-bs-target', '#modal');
-    postButton.textContent = i18next.t('button');
+    postButton.textContent = i18next.t('preview');
     postItem.prepend(postHref, postButton);
     return postItem;
   });
@@ -83,7 +87,7 @@ const postsRendering = (state, elements, i18next) => {
   elements.posts.prepend(postsBlock);
 };
 
-const feedsRendering = (state, elements) => {
+const feedsRender = (state, elements, i18next) => {
   // eslint-disable-next-line no-param-reassign
   elements.feeds.innerHTML = '';
   const feedsBlock = document.createElement('div');
@@ -92,7 +96,7 @@ const feedsRendering = (state, elements) => {
   feedsBody.classList.add('card-body');
   const feedsTitle = document.createElement('h2');
   feedsTitle.classList.add('card-title', 'h4');
-  feedsTitle.textContent = 'Фиды';
+  feedsTitle.textContent = i18next.t('feeds');
   const feedsList = document.createElement('ul');
   feedsList.classList.add('list-group', 'border-0', 'rounded-0');
 
@@ -114,7 +118,7 @@ const feedsRendering = (state, elements) => {
   elements.feeds.prepend(feedsBlock);
 };
 
-const modalRendering = (state, elements) => {
+const modalRender = (state, elements) => {
   const post = state.posts.find((openPost) => openPost.id === state.ui.modalId);
   const modalBody = elements.modal.querySelector('.modal-body');
   const modalTitle = elements.modal.querySelector('.modal-header > h5');
@@ -124,25 +128,25 @@ const modalRendering = (state, elements) => {
   modalButton.setAttribute('href', post.link);
 };
 
-const watch = (state, elements, i18next) => onChange(state, (path, newValue) => {
+const watch = (state, elements, i18next) => onChange(state, (path) => {
   switch (path) {
     case 'form':
-      formRendering(state, path, elements, i18next, newValue);
+      handleForm(state, elements, i18next);
       break;
     case 'load':
-      formRendering(state, path, elements, i18next, newValue);
+      handleLoading(state, elements, i18next);
       break;
     case 'posts':
-      postsRendering(state, elements, i18next);
+      postsRender(state, elements, i18next);
       break;
     case 'feeds':
-      feedsRendering(state, elements);
+      feedsRender(state, elements, i18next);
       break;
     case 'ui.viewPosts':
-      postsRendering(state, elements, i18next);
+      postsRender(state, elements, i18next);
       break;
     case 'ui.modalId':
-      modalRendering(state, elements);
+      modalRender(state, elements);
       break;
     default:
       break;
