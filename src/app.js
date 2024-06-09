@@ -6,7 +6,7 @@ import watch from './view.js';
 import resources from './locales/resources.js';
 import parse from './parser.js';
 
-const TIMEOUT = 1000;
+const TIMEOUT = 15000;
 const RELOAD_TIMER = 5000;
 
 setLocale({
@@ -91,9 +91,9 @@ const reload = async (watchedState) => {
       .then((result) => {
         const response = parse(result.data);
         const currentPosts = watchedState.posts.filter((post) => post.feedID === feed.id);
-        const oldPosts = currentPosts.map((oldPost) => oldPost.link);
+        const oldPostsLinks = currentPosts.map((oldPost) => oldPost.link);
         const newPosts = response.postsList
-          .filter((post) => !oldPosts.includes(post.link))
+          .filter((post) => !oldPostsLinks.includes(post.link))
           .map((post) => {
             const newPost = {
               title: post.title,
